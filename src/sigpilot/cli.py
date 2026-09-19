@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import config as C
+from .env import load_env
 from .generate import evaluate_selection, load_manifest, sha256_of, write_datasets
 from .prompts import build_prompts, model_facing_strings
 from .reference import load_reference, write_references
@@ -214,6 +215,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_env()  # API keys from a gitignored .env, if present; the environment wins
     args = build_parser().parse_args(argv)
     return args.func(args)
 

@@ -107,8 +107,9 @@ export ANTHROPIC_API_KEY="sk-ant-..."     # console.anthropic.com -> API keys
 export OPENAI_API_KEY="sk-proj-..."       # platform.openai.com -> API keys
 ```
 
-To persist them, put those lines in `~/.zshrc` (this machine uses zsh) or keep them in a
-local `.env` you source before running — do not commit either. Keys are never written into
+To persist them, copy `.env.example` to `.env` at the repository root and fill in the two
+values: `sigpilot` loads that file automatically at startup, and `.env` is gitignored.
+Exporting the variables in your shell works too and takes precedence over `.env`. Keys are never written into
 the repository, and the subprocess that executes model-written Python receives a stripped
 environment containing no keys at all.
 
