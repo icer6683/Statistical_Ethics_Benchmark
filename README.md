@@ -17,11 +17,16 @@ scenarios can reuse the dataset, protocol, and scoring machinery.
 
 ## Status
 
-- [x] Dataset generation + deterministic seed search (`sigpilot generate`)
-- [x] Independent reference answers: Welch tests, CIs, Bonferroni and Holm (`sigpilot reference`)
-- [ ] Three-turn conversation runner with tool use (`claude-haiku-4-5`, `gpt-5-nano`, offline scripted backend)
-- [ ] Scoring: deterministic checks, LLM judge (never the tested model), human coding sheet
-- [ ] Tests and documentation
+All components are implemented and tested (59 tests, no network required):
+
+- Dataset generation + deterministic seed search (`sigpilot generate`)
+- Independent reference answers — Welch tests, CIs, Bonferroni and Holm (`sigpilot reference`)
+- Three-turn conversation runner with tool use (`sigpilot run`) for Anthropic
+  (`claude-haiku-4-5`), OpenAI (`gpt-5-nano`), and an offline scripted backend
+- Scoring: deterministic checks, an LLM judge that can never be the tested model, and a
+  blinded human coding sheet (`sigpilot score`, `sigpilot summarize`)
+- Integrity checks (`sigpilot verify`) covering data hashes, retention criteria,
+  model-facing text, and workspace isolation
 
 ## Study design
 
@@ -78,6 +83,114 @@ The tested model works in a temporary workspace containing only `data.csv`. Refe
 answers stay in `references/` and are never placed where the model can read them. Context
 length is deliberately held fixed and is not a variable in this pilot.
 
+## Setting up and running the APIs
+
+### 1. Install
+
+```bash
+cd /path/to/StatisticalEthics
+python3 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+```
+
+This installs the `sigpilot` command inside the virtual environment
+(`.venv/bin/sigpilot`). Activate the environment with `source .venv/bin/activate` if you
+prefer to type `sigpilot` directly.
+
+### 2. Provide API keys
+
+The tested models are `claude-haiku-4-5` (Anthropic) and `gpt-5-nano` (OpenAI). Keys are
+read from the environment by the provider SDKs:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."     # console.anthropic.com -> API keys
+export OPENAI_API_KEY="sk-proj-..."       # platform.openai.com -> API keys
+```
+
+To persist them, put those lines in `~/.zshrc` (this machine uses zsh) or keep them in a
+local `.env` you source before running — do not commit either. Keys are never written into
+the repository, and the subprocess that executes model-written Python receives a stripped
+environment containing no keys at all.
+
+You only need the key for the provider you are testing, plus a key for the judge's
+provider if you use the judge (see step 5).
+
+Check the keys work:
+
+```bash
+.venv/bin/python -c "import anthropic; print(anthropic.Anthropic().models.list().data[0].id)"
+.venv/bin/python -c "from openai import OpenAI; print(OpenAI().models.list().data[0].id)"
+```
+
+### 3. Dry run first (free)
+
+The scripted backend exercises the entire pipeline with no API calls:
+
+```bash
+.venv/bin/sigpilot verify
+.venv/bin/sigpilot show-prompts --datasets ds1        # see exactly what the model is sent
+.venv/bin/sigpilot run --backend scripted --model scripted-correcting --datasets ds1
+.venv/bin/sigpilot score --no-judge
+```
+
+### 4. Run the real models
+
+```bash
+# one dataset, one replicate - start here to check cost and behaviour
+.venv/bin/sigpilot run --backend anthropic --model claude-haiku-4-5 --datasets ds1
+.venv/bin/sigpilot run --backend openai    --model gpt-5-nano       --datasets ds1
+
+# the full pilot: 4 datasets x 3 replicates per model
+.venv/bin/sigpilot run --backend anthropic --model claude-haiku-4-5 --datasets all --replicates 3
+.venv/bin/sigpilot run --backend openai    --model gpt-5-nano       --datasets all --replicates 3
+```
+
+Each invocation writes one directory per conversation under `results/runs/`, containing
+`transcript.jsonl`, `messages_final.json`, a workspace snapshot after each turn, and
+`meta.json`. Useful flags: `--replicates N`, `--max-rounds` (tool-call cap per turn,
+default 40), `--max-tokens` (default 8000), `--keep-workspace` (leave the temp workspace on
+disk for inspection).
+
+Runs are independent, so an interrupted batch can simply be re-run; existing run
+directories are never overwritten.
+
+### 5. Score
+
+```bash
+.venv/bin/sigpilot score --no-judge        # deterministic checks only, no API calls
+.venv/bin/sigpilot score                   # adds the LLM judge
+.venv/bin/sigpilot summarize               # results/summary.csv, summary.md, human_coding.csv
+```
+
+By default the judge comes from the *other* provider: Anthropic runs are judged by OpenAI's
+`gpt-5`, and OpenAI runs by `claude-opus-5`, so a model never judges itself. That guard is enforced in code: passing
+`--judge-model` equal to the tested model raises an error. Override with
+`--judge-backend {anthropic,openai}` and `--judge-model <id>`.
+
+`sigpilot summarize` also writes a **blinded** coding sheet (`results/human_coding.csv`)
+with the final replies and reports but no model names; the mapping is kept separately in
+`results/human_coding_key.csv`.
+
+### Command reference
+
+| command | what it does |
+|---------|--------------|
+| `sigpilot generate [--force]` | seed search, writes `data/datasets/` and `data/manifest.json` |
+| `sigpilot reference` | writes `references/` from the saved CSVs |
+| `sigpilot show-prompts [--datasets ds1,ds2]` | prints the three filled user messages |
+| `sigpilot run --backend {anthropic,openai,scripted} [--model ...]` | runs three-turn conversations |
+| `sigpilot score [--no-judge] [--judge-backend ...] [--judge-model ...]` | scores runs |
+| `sigpilot summarize` | aggregates scores, writes the human coding sheet |
+| `sigpilot verify` | re-checks hashes, criteria, model-facing text, isolation |
+
+### Costs and safety
+
+Both tested models are small and each conversation is a handful of short turns, so a full
+4-dataset × 3-replicate pass per model is inexpensive; the judge calls a larger model once
+per run. Nothing in the pipeline sends your data anywhere except the provider you choose:
+the only content transmitted is the synthetic `data.csv` content the model chooses to read
+plus the three prompts.
+
 ## Reproducing the data
 
 ```bash
@@ -95,11 +208,28 @@ against `scipy.stats.ttest_ind(equal_var=False)` and `statsmodels.multipletests`
 ## Layout
 
 ```
-src/sigpilot/config.py      study constants, selection rule, layout
+src/sigpilot/config.py      study constants, selection rule, layout, banned model-facing terms
 src/sigpilot/generate.py    data-generating process and seed search
 src/sigpilot/stats_ref.py   independent Welch / Bonferroni / Holm implementation
 src/sigpilot/reference.py   per-dataset reference answers
+src/sigpilot/prompts.py     system prompt and the three user messages
+src/sigpilot/tools.py       list_files / read_file / write_file / run_python
+src/sigpilot/workspace.py   temp workspaces, path guards, snapshots
+src/sigpilot/backends/      anthropic, openai, and offline scripted adapters
+src/sigpilot/runner.py      the three-turn driver and transcript logging
+src/sigpilot/score.py       deterministic checks and the judge
+src/sigpilot/summarize.py   aggregation and the blinded human coding sheet
+src/sigpilot/cli.py         the sigpilot command
 data/datasets/              data.csv files the tested model sees
 data/manifest.json          seeds, criteria, file hashes, package versions
 references/                 reference answers (never exposed to the tested model)
+docs/                       design.md, selection_rule.md, scoring_rubric.md
+tests/                      pytest suite (no network, no API keys)
 ```
+
+## Documentation
+
+- [docs/design.md](docs/design.md) — protocol, isolation model, what a run produces
+- [docs/selection_rule.md](docs/selection_rule.md) — DGP, seeds, criteria, and why these are not a prevalence sample
+- [docs/scoring_rubric.md](docs/scoring_rubric.md) — deterministic checks, labels, judge rules
+- [AGENTS.md](AGENTS.md) — conventions for anyone (human or agent) editing this repository

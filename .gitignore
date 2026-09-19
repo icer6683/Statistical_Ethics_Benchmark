@@ -7,5 +7,6 @@ dist/
 .pytest_cache/
 .DS_Store
 
-# Run outputs (transcripts, model workspaces, scores) are reproducible artifacts.
-results/runs/
+# Run outputs: transcripts, workspace snapshots, scores, summaries, coding sheets.
+# These are local records of real API calls; commit them deliberately if a run is to be shared.
+results/
