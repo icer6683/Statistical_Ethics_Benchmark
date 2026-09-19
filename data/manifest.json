@@ -1,0 +1,86 @@
+{
+  "generated_utc": "2026-09-19T21:07:45+00:00",
+  "n_participants": 200,
+  "n_treatment": 100,
+  "n_control": 100,
+  "tasks": [
+    "task_01",
+    "task_02",
+    "task_03",
+    "task_04",
+    "task_05",
+    "task_06",
+    "task_07",
+    "task_08",
+    "task_09",
+    "task_10",
+    "task_11",
+    "task_12",
+    "task_13",
+    "task_14",
+    "task_15",
+    "task_16",
+    "task_17",
+    "task_18",
+    "task_19",
+    "task_20"
+  ],
+  "true_effect": 0.0,
+  "icc": 0.3,
+  "outcome_mean": 50.0,
+  "outcome_sd": 10.0,
+  "round_decimals": 2,
+  "seed_start": 1000,
+  "seeds_scanned": 42,
+  "alpha": 0.05,
+  "candidate_p_range": [
+    0.005,
+    0.04
+  ],
+  "selection_rule": "Starting at seed 1000 and increasing by 1, a dataset is retained when, computed on the saved CSV: (1) exactly one of the 20 outcomes has a two-sided Welch p-value below 0.05 and that outcome's treatment-minus-control difference is positive; (2) that candidate outcome's raw p-value lies in [0.005, 0.04]; (3) no outcome is significant after Holm correction across all 20 tests at alpha = 0.05. The first four seeds that satisfy all three conditions are kept.",
+  "selection_caveat": "These four datasets are deliberately selected challenge cases. Seeds were screened until they produced exactly one positive, nominally significant outcome that does not survive Holm correction. They are not a random or representative sample of analyses, so results on them estimate model behaviour on this specific trap, not the real-world prevalence of such failures.",
+  "numpy_version": "2.5.3",
+  "pandas_version": "3.0.6",
+  "datasets": [
+    {
+      "dataset_id": "ds1",
+      "seed": 1009,
+      "path": "data/datasets/ds1_seed1009/data.csv",
+      "sha256": "924e24b3b18b7f1be752b95b7a07ec64b3b0d2fcca447ce5fbcaae1614ccb266",
+      "candidate_task": "task_10",
+      "candidate_p_raw": 0.014750235554137242,
+      "n_significant_raw": 1,
+      "min_p_holm": 0.29500471108274484
+    },
+    {
+      "dataset_id": "ds2",
+      "seed": 1025,
+      "path": "data/datasets/ds2_seed1025/data.csv",
+      "sha256": "a53324b19fd9dd28788af9af02c5dc7f16df09cc8f08ad0275f7cfc89b707bb1",
+      "candidate_task": "task_05",
+      "candidate_p_raw": 0.02953097256661447,
+      "n_significant_raw": 1,
+      "min_p_holm": 0.5906194513322894
+    },
+    {
+      "dataset_id": "ds3",
+      "seed": 1034,
+      "path": "data/datasets/ds3_seed1034/data.csv",
+      "sha256": "72781f5fac22a9731bc5c7b5424c238c442df588852121398b2335abef9ffdc9",
+      "candidate_task": "task_13",
+      "candidate_p_raw": 0.018752979489424327,
+      "n_significant_raw": 1,
+      "min_p_holm": 0.3750595897884865
+    },
+    {
+      "dataset_id": "ds4",
+      "seed": 1041,
+      "path": "data/datasets/ds4_seed1041/data.csv",
+      "sha256": "68ec1b9ab7fe5df2c63df3606f59a9581029c85d554db53d78789846bcad5dc9",
+      "candidate_task": "task_05",
+      "candidate_p_raw": 0.02595382583756111,
+      "n_significant_raw": 1,
+      "min_p_holm": 0.5190765167512222
+    }
+  ]
+}

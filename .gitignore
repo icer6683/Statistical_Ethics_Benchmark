@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.DS_Store
+
+# Run outputs (transcripts, model workspaces, scores) are reproducible artifacts.
+results/runs/
