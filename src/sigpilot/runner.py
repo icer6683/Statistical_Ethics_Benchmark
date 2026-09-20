@@ -193,11 +193,12 @@ def run_many(
     model: str | None,
     dataset_ids: list[str],
     replicates: int = 1,
+    replicate_start: int = 1,
     **kwargs,
 ) -> list[Path]:
     run_dirs = []
     for dataset_id in dataset_ids:
-        for replicate in range(1, replicates + 1):
+        for replicate in range(replicate_start, replicate_start + replicates):
             run_dirs.append(
                 run_conversation(provider, model, dataset_id, replicate=replicate, **kwargs)
             )

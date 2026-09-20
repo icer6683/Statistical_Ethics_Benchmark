@@ -1,0 +1,9 @@
+#!/bin/sh
+# Run sigpilot without depending on the editable-install .pth file.
+#
+# On macOS, pip sets the UF_HIDDEN flag on __editable__*.pth during its
+# uninstall/rollback step, and Python 3.14's site module skips hidden .pth
+# files -- so `.venv/bin/sigpilot` can start failing with ModuleNotFoundError
+# after a reinstall. Putting src on PYTHONPATH sidesteps that entirely.
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+PYTHONPATH="$REPO/src${PYTHONPATH:+:$PYTHONPATH}" exec "$REPO/.venv/bin/python" -m sigpilot "$@"

@@ -42,9 +42,21 @@ path guards in `workspace.py` or the environment stripping in `tools.py`.
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest -q      # 59 tests, no network, no API keys needed
-.venv/bin/sigpilot verify          # hashes, criteria, model-facing text, isolation
+.venv/bin/python -m pytest -q      # no network, no API keys needed
+./scripts/sigpilot verify          # hashes, criteria, model-facing text, isolation
 ```
+
+Use `./scripts/sigpilot` rather than `.venv/bin/sigpilot`. On macOS, pip sets the
+`UF_HIDDEN` flag on `__editable__*.pth` during the uninstall step of an editable
+reinstall, and Python 3.14's `site` module skips hidden `.pth` files — so the console
+script starts failing with `ModuleNotFoundError: No module named 'sigpilot'` even though
+the file is present and correct. The wrapper puts `src` on `PYTHONPATH` instead;
+`tests/conftest.py` does the same for pytest. To repair the installed entry point:
+`chflags nohidden .venv/lib/python3.*/site-packages/__editable__*.pth`.
+
+Long batches on a laptop: run them under `caffeinate -dimsu`. If the machine sleeps
+mid-request the sockets die, and because macOS's monotonic clock pauses during sleep the
+client timeout does not fire — the run hangs until killed.
 
 Offline end-to-end check (no API calls):
 

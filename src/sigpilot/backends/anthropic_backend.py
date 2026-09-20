@@ -15,6 +15,11 @@ from .base import AssistantStep, Backend, ToolCall, with_retries
 
 DEFAULT_MODEL = "claude-haiku-4-5"
 
+# A hung request must not stall a whole batch: cap each call and let `with_retries`
+# handle the retry, rather than the SDK's 10-minute default.
+REQUEST_TIMEOUT_SECONDS = 300.0
+SDK_MAX_RETRIES = 1
+
 
 class AnthropicBackend(Backend):
     provider = "anthropic"
@@ -23,7 +28,9 @@ class AnthropicBackend(Backend):
         import anthropic  # imported lazily so offline runs need no SDK
 
         super().__init__(model=model, system=system, tools=tools or TOOL_SPECS, max_tokens=max_tokens)
-        self.client = anthropic.Anthropic()
+        self.client = anthropic.Anthropic(
+            timeout=REQUEST_TIMEOUT_SECONDS, max_retries=SDK_MAX_RETRIES
+        )
         self.messages: list[dict] = []
 
     def append_user(self, text: str) -> None:

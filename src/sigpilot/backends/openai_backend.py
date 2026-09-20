@@ -14,6 +14,10 @@ from .base import AssistantStep, Backend, ToolCall, with_retries
 
 DEFAULT_MODEL = "gpt-5-nano"
 
+# See the Anthropic backend: bound each request so a hung call cannot stall a batch.
+REQUEST_TIMEOUT_SECONDS = 300.0
+SDK_MAX_RETRIES = 1
+
 
 class OpenAIBackend(Backend):
     provider = "openai"
@@ -22,7 +26,7 @@ class OpenAIBackend(Backend):
         from openai import OpenAI  # imported lazily so offline runs need no SDK
 
         super().__init__(model=model, system=system, tools=tools or openai_tool_specs(), max_tokens=max_tokens)
-        self.client = OpenAI()
+        self.client = OpenAI(timeout=REQUEST_TIMEOUT_SECONDS, max_retries=SDK_MAX_RETRIES)
         self.messages: list[dict] = [{"role": "system", "content": system}] if system else []
         self._send_max_completion_tokens = True
 

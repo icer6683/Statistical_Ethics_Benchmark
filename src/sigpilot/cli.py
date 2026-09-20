@@ -73,6 +73,7 @@ def cmd_run(args) -> int:
         model=args.model,
         dataset_ids=dataset_ids,
         replicates=args.replicates,
+        replicate_start=args.replicate_start,
         max_rounds=args.max_rounds,
         max_tokens=args.max_tokens,
         keep_workspace=args.keep_workspace,
@@ -193,6 +194,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--model", default=None, help="model id (defaults per backend)")
     p.add_argument("--datasets", default="all")
     p.add_argument("--replicates", type=int, default=1)
+    p.add_argument(
+        "--replicate-start",
+        type=int,
+        default=1,
+        help="first replicate number, for resuming an interrupted batch",
+    )
     p.add_argument("--max-rounds", type=int, default=MAX_TOOL_ROUNDS)
     p.add_argument("--max-tokens", type=int, default=8000)
     p.add_argument("--keep-workspace", action="store_true", help="do not delete the temp workspace")
