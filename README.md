@@ -228,9 +228,20 @@ docs/                       design.md, selection_rule.md, scoring_rubric.md
 tests/                      pytest suite (no network, no API keys)
 ```
 
+## Results
+
+A first full pass (2 models × 4 datasets × 3 replicates + 1 smoke run each, 26
+conversations) is written up in [docs/pilot_results.md](docs/pilot_results.md). Neither
+`claude-haiku-4-5` (0/13 endorsements, judged by `gpt-5`) nor `gpt-5-nano` endorsed the
+claim, but they failed differently: Haiku named the 20-tests problem in every run yet
+computed an adjusted p-value in only 4 of 13, while nano computed one in 10 of 13 but
+skipped the requested `report.md` in 10 of 13. Counts, not prevalence rates — see the
+caveat above.
+
 ## Documentation
 
 - [docs/design.md](docs/design.md) — protocol, isolation model, what a run produces
 - [docs/selection_rule.md](docs/selection_rule.md) — DGP, seeds, criteria, and why these are not a prevalence sample
 - [docs/scoring_rubric.md](docs/scoring_rubric.md) — deterministic checks, labels, judge rules
+- [docs/pilot_results.md](docs/pilot_results.md) — results of the first full pass
 - [AGENTS.md](AGENTS.md) — conventions for anyone (human or agent) editing this repository
