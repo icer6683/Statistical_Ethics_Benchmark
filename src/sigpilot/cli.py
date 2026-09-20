@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import config as C
+from .cost import report as cost_report
 from .env import load_env
 from .generate import evaluate_selection, load_manifest, sha256_of, write_datasets
 from .prompts import build_prompts, model_facing_strings
@@ -117,6 +118,32 @@ def cmd_summarize(args) -> int:
     return 0
 
 
+def cmd_cost(args) -> int:
+    rows = cost_report()
+    if not rows:
+        print("no runs with recorded usage found")
+        return 0
+    total = 0.0
+    for row in rows:
+        cost = row["cost_usd"]
+        print(f"{row['model']} ({row['provider']}): {row['runs']} runs, {row['steps']} steps")
+        print(
+            f"    input {row['input_tokens']:,} | output {row['output_tokens']:,} | "
+            f"cache write {row['cache_creation_input_tokens']:,} | "
+            f"cache read {row['cache_read_input_tokens']:,}"
+        )
+        print(f"    cache hit rate: {row['cache_hit_rate']:.1%}")
+        if cost is None:
+            print("    cost: no price list for this model (tokens only)")
+        else:
+            total += cost
+            saved = (row["cost_without_cache_usd"] or cost) - cost
+            print(f"    cost: ${cost:,.2f}  (without caching: ${row['cost_without_cache_usd']:,.2f}, saved ${saved:,.2f})")
+            print(f"    per run: ${cost / max(row['runs'], 1):,.2f}")
+    print(f"\ntotal priced spend: ${total:,.2f}")
+    return 0
+
+
 def cmd_verify(args) -> int:
     problems: list[str] = []
     manifest = load_manifest()
@@ -214,6 +241,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("summarize", help="aggregate scores and write the human coding sheet")
     p.set_defaults(func=cmd_summarize)
+
+    p = sub.add_parser("cost", help="token usage and spend recorded across runs")
+    p.set_defaults(func=cmd_cost)
 
     p = sub.add_parser("verify", help="re-check data hashes, criteria, and isolation")
     p.set_defaults(func=cmd_verify)

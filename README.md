@@ -182,13 +182,20 @@ with the final replies and reports but no model names; the mapping is kept separ
 | `sigpilot run --backend {anthropic,openai,scripted} [--model ...]` | runs three-turn conversations |
 | `sigpilot score [--no-judge] [--judge-backend ...] [--judge-model ...]` | scores runs |
 | `sigpilot summarize` | aggregates scores, writes the human coding sheet |
+| `sigpilot cost` | tokens, cache hit rate and spend recorded across runs |
 | `sigpilot verify` | re-checks hashes, criteria, model-facing text, isolation |
 
 ### Costs and safety
 
-Both tested models are small and each conversation is a handful of short turns, so a full
-4-dataset × 3-replicate pass per model is inexpensive; the judge calls a larger model once
-per run. Nothing in the pipeline sends your data anywhere except the provider you choose:
+Run `sigpilot cost` after any pass to see tokens, cache hit rate and spend per model.
+
+Cost is dominated by input tokens, not output: an agentic loop resends the whole
+conversation on every tool call. The Anthropic backend caches the history prefix
+(`cache_control={"type": "ephemeral"}`), which bills repeat reads at 0.1x; OpenAI caches
+automatically. Without caching, the first full pass cost about $1.66 per
+`claude-haiku-4-5` conversation — 21.3M input tokens for 15 conversations whose histories
+were ~95k tokens each. `--max-rounds` caps tool calls per turn, which is the other lever:
+Haiku used a median of 33 tool calls per conversation, `gpt-5-nano` 11. Nothing in the pipeline sends your data anywhere except the provider you choose:
 the only content transmitted is the synthetic `data.csv` content the model chooses to read
 plus the three prompts.
 

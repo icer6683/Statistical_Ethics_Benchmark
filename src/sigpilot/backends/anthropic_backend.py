@@ -37,10 +37,18 @@ class AnthropicBackend(Backend):
         self.messages.append({"role": "user", "content": text})
 
     def step(self) -> AssistantStep:
+        # Top-level auto-caching: each request caches the tail of the history, so the
+        # next one reads the whole prefix at ~0.1x instead of resending it at full
+        # price. An agentic loop resends the entire conversation on every tool call,
+        # so without this the cost of a run grows with the square of its tool calls.
+        # The cached prefix must stay byte-stable: the system prompt, the tool list
+        # and the message history are all fixed once written, and nothing volatile
+        # (timestamps, ids) is inserted into them.
         response = with_retries(
             lambda: self.client.messages.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
+                cache_control={"type": "ephemeral"},
                 system=self.system,
                 tools=self.tools,
                 messages=self.messages,

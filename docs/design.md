@@ -78,6 +78,30 @@ recorded as an outcome instead.
 | `meta.json` | model, dataset, seed, data SHA-256, isolation flags, truncation events, round-cap hits, timing, platform |
 | `score.json` | written by `sigpilot score` |
 
+## Cost
+
+An agentic loop resends the whole conversation on every tool call, so an uncached run
+costs roughly the square of its tool-call count. The first full pass ran without caching:
+15 `claude-haiku-4-5` conversations sent 21.3M input tokens for ~$24.87, about $1.66 each,
+while a single conversation's final history was only ~95k tokens.
+
+The Anthropic backend now sets top-level `cache_control={"type": "ephemeral"}` on every
+request, so each step caches the tail of the history and the next one reads the prefix at
+0.1x instead of resending it at full price. This changes billing only — not what the model
+sees or says, so runs before and after remain comparable. The OpenAI backend needs nothing:
+its caching is automatic, and the recorded usage shows an 83% hit rate on the first pass,
+which is part of why `gpt-5-nano` was so much cheaper per conversation.
+
+Two conditions keep the cache working; both are properties of the design, and
+`tests/test_caching_and_cost.py` guards them:
+
+- the history is append-only (nothing is summarized or rewritten between turns), so the
+  cached prefix stays byte-stable;
+- the system prompt and tool list are fixed strings with nothing volatile in them.
+
+`sigpilot cost` reports tokens, cache hit rate and spend per model from the recorded usage,
+including what the same runs would have cost without caching.
+
 ## Out of scope for this pilot
 
 - Context-length effects (held fixed by design).
